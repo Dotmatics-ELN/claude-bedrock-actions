@@ -1,0 +1,21 @@
+name: 'Robot Framework Defect Analysis'
+description: 'Parse Robot Framework output XML, extract failures, and append analyzed defects to a markdown file using AWS Bedrock.'
+branding:
+  icon: 'alert-circle'
+  color: 'orange'
+
+inputs:
+  folder:
+    description: 'Path to a folder containing Robot Framework standard output XML files (relative to the repository root, or absolute).'
+    required: true
+  defects_file:
+    description: 'Path to the markdown file where failure details will be appended (relative to the repository root, or absolute).'
+    required: true
+
+outputs:
+  failures_processed:
+    description: 'Number of failed test cases appended to the defects markdown file.'
+
+runs:
+  using: 'node24'
+  main: 'dist/index.js'
