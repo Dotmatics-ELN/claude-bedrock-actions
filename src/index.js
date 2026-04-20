@@ -7,7 +7,7 @@ const {
   ConverseCommand,
 } = require('@aws-sdk/client-bedrock-runtime');
 
-const BEDROCK_MODEL_ID = 'anthropic.claude-sonnet-4-6';
+const BEDROCK_MODEL_ID = 'us.anthropic.claude-sonnet-4-6';
 const REPO_CONTEXT_MAX_FILES = 14;
 const REPO_CONTEXT_MAX_BYTES_PER_FILE = 4096;
 const REPO_CONTEXT_TOTAL_CAP = 24000;
@@ -185,26 +185,11 @@ function gatherRepositoryContext(workspace) {
   return collected.join('');
 }
 
-function applyBrPrefixedAwsEnv() {
-  const map = [
-    ['AWS_REGION', 'BR_AWS_REGION'],
-    ['AWS_ACCESS_KEY_ID', 'BR_AWS_ACCESS_KEY_ID'],
-    ['AWS_SECRET_ACCESS_KEY', 'BR_AWS_SECRET_ACCESS_KEY'],
-    ['AWS_SESSION_TOKEN', 'BR_AWS_SESSION_TOKEN'],
-  ];
-  for (const [std, br] of map) {
-    if (!process.env[std] && process.env[br]) {
-      process.env[std] = process.env[br];
-    }
-  }
-}
-
 function getBedrockClient() {
-  applyBrPrefixedAwsEnv();
-  const region = process.env.AWS_REGION || process.env.BR_AWS_REGION;
+  const region = process.env.AWS_REGION;
   if (!region) {
     throw new Error(
-      'AWS region is not set. Provide BR_AWS_REGION (or AWS_REGION) in the environment.',
+      'AWS region is not set. Provide AWS_REGION in the environment.',
     );
   }
   return new BedrockRuntimeClient({ region });
@@ -262,20 +247,13 @@ Respond with a concise **root cause** in plain language: what likely broke and w
 
 function appendDefectMarkdown(defectsPath, { testCaseName, errorMessage, rootCause }) {
   const block = [
-    '---',
     '',
-    `## Test case: ${testCaseName.replace(/\r?\n/g, ' ')}`,
+    `Test Case Name - ${testCaseName.replace(/\r?\n/g, ' ')}`,
+    `Error Message - ${errorMessage.trim()}`,
+    `Root Cause - ${rootCause.trim()}`,
     '',
-    '### Error message',
-    '',
-    errorMessage.trim(),
-    '',
-    '### Root cause (Bedrock)',
-    '',
-    rootCause.trim(),
-    '',
-    '',
-  ].join('\n');
+  ]
+    .join('\n');
   fs.appendFileSync(defectsPath, block, 'utf8');
 }
 
@@ -290,14 +268,16 @@ function ensureDefectsFile(defectsPath) {
     fs.mkdirSync(defectsDir, { recursive: true });
   }
   if (!fs.existsSync(defectsPath)) {
-    fs.writeFileSync(defectsPath, '# Robot Framework defect log\n\n', 'utf8');
+    fs.writeFileSync(defectsPath, '', 'utf8');
   }
 }
 
-function appendSimpleStatusNote(defectsPath, title, detailLines) {
-  ensureDefectsFile(defectsPath);
-  const body = ['---', '', `*${title}*`, '', ...detailLines.map((l) => `- ${l}`), '', ''].join('\n');
-  fs.appendFileSync(defectsPath, body, 'utf8');
+function writeSimpleStatus(defectsPath, message) {
+  const defectsDir = path.dirname(defectsPath);
+  if (!fs.existsSync(defectsDir)) {
+    fs.mkdirSync(defectsDir, { recursive: true });
+  }
+  fs.writeFileSync(defectsPath, `${message.trim()}\n`, 'utf8');
 }
 
 async function main() {
@@ -320,10 +300,7 @@ async function main() {
   const xmlFiles = listXmlFiles(folder);
   if (xmlFiles.length === 0) {
     core.info(`No XML files found in folder "${folder}". Writing status note to defects file.`);
-    appendSimpleStatusNote(defectsPath, 'No XML files were found.', [
-      `Folder scanned: \`${folder}\``,
-      'There are no `*.xml` files in this folder.',
-    ]);
+    writeSimpleStatus(defectsPath, 'No XML files were found.');
     core.setOutput('failures_processed', '0');
     return;
   }
@@ -358,11 +335,7 @@ async function main() {
 
   if (failureQueue.length === 0) {
     core.info('No failed test cases found in XML. Writing status note to defects file.');
-    appendSimpleStatusNote(defectsPath, 'No errors were found.', [
-      `Folder scanned: \`${folder}\``,
-      `XML files inspected: ${xmlFiles.length}`,
-      'No failing Robot Framework test cases were detected in the parsed output.',
-    ]);
+    writeSimpleStatus(defectsPath, 'No errors were found.');
     core.setOutput('failures_processed', '0');
     return;
   }

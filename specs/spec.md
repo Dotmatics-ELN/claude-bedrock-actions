@@ -22,7 +22,7 @@ If no XML files can be found in the folder referenced by input parameter folder 
 
 For each error found, append data pertaining to the error to the file referenced by defects_file in the input parameters using the generalised format detailed in the 'Defect Format' section of this document.
 
-For each error found, use AWS Bedrock to try to determine the cause of the error and add this to the information for the error. Use any resources found in the repository including the XML files to achieve this.
+For each error found, use AWS Bedrock to try to determine the cause of the error and add this to the information for the error. Use any resources found in the repository including XML output files and other .robot and .resource files as input to this process.
 
 If no errors were found in any of the present XML files then still create the file referenced by defects_file with simple message to indicate that no errors were found.
 
@@ -37,8 +37,5 @@ Root Cause - the determined root cause from AWS Bedrock.
 ## Technical Details
 
 The base node version for the code should be 24
-When analysing failures, the AWS Bedrock model 'anthropic.claude-sonnet-4-6' must be used.
-AWS_REGION can be found in environment variable BR_AWS_REGION for AWS access.
-AWS_ACCESS_KEY_ID can be found in environment variable BR_AWS_ACCESS_KEY_ID for AWS access.
-AWS_SECRET_ACCESS_KEY can be found in environment variable BR_AWS_SECRET_ACCESS_KEY for AWS access.
-AWS_SESSION_TOKEN can be found in environment variable BR_AWS_SESSION_TOKEN for AWS access.
+When analysing failures, the AWS Bedrock model 'us.anthropic.claude-sonnet-4-6' must be used.
+AWS authentication with AWS standard variables will be handled outside of this custom Github Action.
