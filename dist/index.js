@@ -47369,6 +47369,7 @@ const REPO_CONTEXT_MAX_FILES = 14;
 const REPO_CONTEXT_MAX_BYTES_PER_FILE = 4096;
 const REPO_CONTEXT_TOTAL_CAP = 24000;
 const XML_SNIPPET_MAX = 12000;
+const INCOGNITO_VARIABLE_MARKER = '${incognito}';
 
 function asArray(value) {
   if (value == null) return [];
@@ -47437,6 +47438,11 @@ function buildTestCaseName(suitePath, test) {
   const testName = getAttr(test, 'name') || 'Unknown test';
   const prefix = suitePath.filter(Boolean).join(' :: ');
   return prefix ? `${prefix} :: ${testName}` : testName;
+}
+
+function isIncognitoRelatedFailure({ testCaseName, errorMessage, xmlContext }) {
+  const haystack = [testCaseName, errorMessage, xmlContext].join('\n');
+  return haystack.includes(INCOGNITO_VARIABLE_MARKER);
 }
 
 function serializeXmlSnippet(obj, maxLen) {
@@ -47687,7 +47693,13 @@ async function main() {
 
     const failures = extractFailuresFromRobotDoc(doc);
     const relXml = path.relative(workspace, xmlPath) || xmlPath;
-    for (const f of failures) failureQueue.push({ failure: f, relXml });
+    for (const f of failures) {
+      if (isIncognitoRelatedFailure(f)) {
+        core.info(`Ignoring failure associated with ${INCOGNITO_VARIABLE_MARKER}: ${f.testCaseName} (${relXml})`);
+        continue;
+      }
+      failureQueue.push({ failure: f, relXml });
+    }
   }
 
   if (failureQueue.length === 0) {
