@@ -47566,20 +47566,21 @@ async function inferRootCause({
   repoContext,
   sourceXmlRelative,
 }) {
-  const prompt = `Analyze this failed Robot Framework test and state the root cause briefly.
+  const prompt = `You are a senior test automation engineer analyzing a failed Robot Framework test.
 
-Test: ${testCaseName}
-Source: ${sourceXmlRelative}
-Error:
+## Failure
+- **Test case:** ${testCaseName}
+- **Source output file:** ${sourceXmlRelative}
+- **Error message / stack (from XML):**
 ${errorMessage}
 
-XML (truncated JSON):
+## Robot Framework XML subtree (JSON representation of the failed test node; may be truncated)
 ${xmlSnippet || '(none)'}
 
-Repository context (may be incomplete):
-${repoContext || '(none)'}
+## Additional repository files (may include tests, libraries, or config; may be incomplete)
+${repoContext || '(no extra files collected)'}
 
-Reply in 1–3 short sentences. State the likely root cause only—no preamble, headings, bullet lists, or repetition of the error text.`;
+Respond with a concise **root cause** in plain language: what likely broke and why, referencing clues from the error text and repository when possible. Do not repeat the raw error verbatim as the whole answer; explain the underlying cause. Keep it under 12 sentences.`;
 
   const response = await client.send(
     new ConverseCommand({
@@ -47591,7 +47592,7 @@ Reply in 1–3 short sentences. State the likely root cause only—no preamble, 
         },
       ],
       inferenceConfig: {
-        maxTokens: 256,
+        maxTokens: 512,
         temperature: 0.2,
       },
     }),
