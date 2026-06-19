@@ -235,7 +235,7 @@ Respond with a concise **root cause** in plain language: what likely broke and w
         },
       ],
       inferenceConfig: {
-        maxTokens: 512,
+        maxTokens: 256,
         temperature: 0.2,
       },
     }),
